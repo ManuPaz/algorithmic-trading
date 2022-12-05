@@ -1,0 +1,7 @@
+**/data/**
+http_cache.sqlite
+resources/secret_properties.yaml
+**/logs/**
+**/__pycache__/**
+**/.idea/**
+**.obj
