@@ -20,6 +20,7 @@ logging.config.fileConfig('resources/logging.conf')
 logger = logging.getLogger('general')
 pd.set_option('display.max_columns', 500)
 if __name__ == '__main__':
+
     tiempo1 = time.time()
     stocks_summary = None
     if os.path.isfile("resources/stocks_summary.obj"):
@@ -55,13 +56,13 @@ if __name__ == '__main__':
 
         logger.info("First query time: {}".format(time.time() - tiempo1))
         if stocks_summary is None:
-            stocks_summary = stocks_module.StocksSummary(stocks_list=tickers, general_summary=general_summary,
+            stocks_summary = stocks_module.StocksSummary( general_summary=general_summary,
                                                          fundamental_summary=financials_summary,
                                                          earnings_calendar=earnings_calendar,
                                                          fundamental_summary_finhub=financials_summary_finhub,
                                                          stock_profile=stocks_profile)
         else:
-            stocks_summary.update(stocks_list=tickers, general_summary=general_summary,
+            stocks_summary.update( general_summary=general_summary,
                                   fundamental_summary=financials_summary,
                                   earnings_calendar=earnings_calendar,
                                   fundamental_summary_finhub=financials_summary_finhub,
@@ -92,7 +93,6 @@ if __name__ == '__main__':
                 "annual_financials":annual_results,"recomendation":recomendation,"indicators":indicators}
         stock = stocks_module.Stock(name=ticker, prices=prices,**kwargs )
         stocks_summary.stock_objects[ticker] = stock
-
     with open("resources/stocks_summary.obj", "wb") as file:
             pickle.dump(stocks_summary, file, protocol=pickle.HIGHEST_PROTOCOL)
 

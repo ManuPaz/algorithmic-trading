@@ -13,5 +13,5 @@ tickers: [ "GOOG","META","AAPL","MSFT","TSLA",
            "OXY","XOM","CVX","DVN","SLR","ANA","TTE","EOG","MPC",
            "BABA","PDD","NIO","MELI","ZAL","JD","AMZN"
 ] #tickers to download series data
-index_name: "russell2000" #index to get the equities to download current data
+index_name: "sp500" #index to get the equities to download current data
 

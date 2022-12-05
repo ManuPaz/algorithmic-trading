@@ -5,7 +5,7 @@ import numpy as np
 import csv
 import yahoo_fin.stock_info as si
 import pandas_datareader.data as web
-from src.functions import utils
+from src.utils import time_utils
 import logging.config
 logging.config.fileConfig('resources/logging.conf')
 logger = logging.getLogger('api_error')
@@ -234,8 +234,8 @@ class Finhub(Api):
         data=data.sort_index()
         return  data
     def get_technical_indicators(self,stock,indicators,resolution="1d",from_='2021-01-01',to='2022-12-01'):
-        from_=int(utils.timestamp_from_string(from_))
-        to=int(utils.timestamp_from_string(to))
+        from_=int(time_utils.timestamp_from_string(from_))
+        to=int(time_utils.timestamp_from_string(to))
         data_total=None
         dict_resolutions={"1d":"D","30m":30}
         resolution_api=dict_resolutions[resolution]
@@ -287,8 +287,8 @@ class YFinance(Api):
         if from_ is None or to is None:
             url="https://query1.finance.yahoo.com/v8/finance/chart/{}?interval={}&range={}&close={}".format(stock,interval,range,close)
         else:
-            from_=int(utils.timestamp_from_string(from_))
-            to=int(utils.timestamp_from_string(to))
+            from_=int(time_utils.timestamp_from_string(from_))
+            to=int(time_utils.timestamp_from_string(to))
             url = "https://query1.finance.yahoo.com/v8/finance/chart/{}?interval={}&close={}&period1={}&period2={}".format(stock,interval,
                                                                                                               close,from_,to)
         if events_splits:

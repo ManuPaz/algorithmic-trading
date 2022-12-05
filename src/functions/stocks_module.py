@@ -9,10 +9,9 @@ class OtherEquities():
 
 
 class StocksSummary():
-    def __init__(self, stocks_list=None, general_summary=None, fundamental_summary=None,
+    def __init__(self,  general_summary=None, fundamental_summary=None,
                  fundamental_summary_finhub=None, earnings_calendar=None, stock_profile=None):
         """
-         stocks_list: stocks which have series info
 
          general_summary: dataframe with actual  info for different stocks
 
@@ -24,7 +23,7 @@ class StocksSummary():
 
          stock_profile: dafaframe with company info for different stocks
         """
-        self.stocks_list = stocks_list
+
         self.stock_objects = {}
         self.general_summary = general_summary
         self.fundamental_summary = fundamental_summary
@@ -34,10 +33,9 @@ class StocksSummary():
         self.fundamental_summary_complete = pd.merge(self.fundamental_summary_finhub, self.fundamental_summary,
                                                      right_index=True, left_index=True)
 
-    def update(self, stocks_list=None, general_summary=None, fundamental_summary=None,
+    def update(self, general_summary=None, fundamental_summary=None,
                fundamental_summary_finhub=None, earnings_calendar=None, stock_profile=None):
         self.earnings_calendar = earnings_calendar
-        self.stocks_list = list(np.unique(stocks_list + stocks_list))
         dfs={"stock_profile":{"new":stock_profile,"old":self.stock_profile},
              "general_summary":{"new":general_summary,"old":self.general_summary},
              "fundamental_summary":{"new":fundamental_summary,"old":self.fundamental_summary}}
