@@ -37,9 +37,11 @@ if __name__ == '__main__':
     else:
         tickers=yFinance.get_tickers(indice_name)
     tickers.sort()
-    index = pandas_data_reader.get_index(["sp500", "nasdaq100",])
+    index = pandas_data_reader.get_index(["sp500", "nasdaq100",],from_=general_config["FROM"],to=general_config["TO"])
     economic_calendar = alpha_vantage.get_macroeconomic_data()
     other_equities=stocks_module.OtherEquities(index=index,economic_calendar=economic_calendar)
+    with open("resources/other_equities.obj", "wb") as file_equities:
+        pickle.dump(other_equities, file_equities, protocol=pickle.HIGHEST_PROTOCOL)
     logger.info("Numero de tickers {}".format(len(tickers)))
     earnings_calendar = alpha_vantage.get_earnings_calendar(horizon="3month")
     if stocks_summary is not None:

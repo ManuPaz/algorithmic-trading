@@ -1,28 +1,36 @@
 # Import numpy library
 import numpy as np
+import math
+import pandas as pd
 
+def all_metrics_array(returns,prices, risk_free_return, annualized=1):
+    m=all_metrics(returns,prices, risk_free_return, annualized)
+    return [m["sharpe_ratio"],m["sortino_ratio"],m[ "annualized_return %"],m["maximum_drawdown"]]
+def all_metrics(returns,prices, risk_free_return, annualized=1):
+    return {"sharpe_ratio":sharpe_ratio(returns, risk_free_return, annualized),
+            "sortino_ratio":sortino_ratio(returns, risk_free_return, annualized),
+            "annualized_return %":annualized_return(returns,annualized),
+            "maximum_drawdown":maximum_drawdown(prices)
+
+            }
 # Define function to calculate Sharpe ratio
-def sharpe_ratio(original_prices, risk_free_return):
-    returns = (original_prices[1:] / original_prices[:-1]) - 1
+def sharpe_ratio(returns, risk_free_return, annualized=1):
     expected_return = np.mean(returns)
     standard_deviation = np.std(returns)
-    return (expected_return - risk_free_return) / standard_deviation
-
+    return math.sqrt(annualized)*(expected_return - risk_free_return) / standard_deviation
 # Define function to calculate Sortino ratio
-def sortino_ratio(original_prices, risk_free_return):
-    returns = (original_prices[1:] / original_prices[:-1]) - 1
+def sortino_ratio(returns, risk_free_return, annualized=1):
     expected_return = np.mean(returns)
     excess_returns = returns - risk_free_return
     negative_deviation = np.std(excess_returns[excess_returns < 0])
-    return (expected_return - risk_free_return) / negative_deviation
+    return math.sqrt(annualized)*(expected_return - risk_free_return) / negative_deviation
 
 # Define function to calculate analyzed return
-def analyzed_return(original_prices):
-    n=len(original_prices)/252
-    return ((original_prices[-1] / original_prices[0])**(1/n) - 1) * 100
+def annualized_return(returns,annualized=1):
+    n=len(returns)/annualized
+    return (np.cumprod(1+returns)[-1]**(1/n)-1)
 
 # Define function to calculate maximum drawdown
 def maximum_drawdown(original_prices):
-    account_balance = original_prices[1:] / original_prices[:-1]
-    maximum_drawdown = (np.max(account_balance) - account_balance) / np.max(account_balance)
-    return np.max(maximum_drawdown) * 100
+    maximos=pd.Series(original_prices).cummax()
+    return -min((original_prices-maximos)/maximos)

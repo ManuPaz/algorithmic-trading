@@ -45,14 +45,18 @@ class AlphaVantage(Api):
     def get_earnings_calendar(self,horizon="3month"):
         url = 'https://www.alphavantage.co/query?function=EARNINGS_CALENDAR&horizon={}&apikey={}'.format(horizon,self.api_key)
         r = self.session.get(url).content.decode('utf-8')
-        cr = csv.reader(r.splitlines(), delimiter=',',)
-        data=pd.DataFrame(cr)
-        data.columns=data.loc[0]
-        data=data.iloc[1:]
-        data=data.set_index("reportDate")
-        data.index=pd.to_datetime(data.index)
-        data=data.sort_index()
-        return data
+        try:
+            cr = csv.reader(r.splitlines(), delimiter=',',)
+            data=pd.DataFrame(cr)
+            data.columns=data.loc[0]
+            data=data.iloc[1:]
+            data=data.set_index("reportDate")
+            data.index=pd.to_datetime(data.index)
+            data=data.sort_index()
+            return data
+        except Exception as e:
+            logger.error("Earnings calendar not abled")
+            return pd.DataFrame()
 
     def get_US_listed_stocks(self):
         url = 'https://www.alphavantage.co/query?function=LISTING_STATUS&apikey={}'.format(self.api_key)
@@ -438,6 +442,10 @@ class YFinance(Api):
 
 
 class PandasDataReader():
-    def get_index(self,index=[]):
-        index = web.DataReader(index, 'fred')
+    def get_index(self,index=[],from_=None,to=None):
+        if from_ is None or to is None:
+            index = web.DataReader(index, 'fred')
+        else:
+            index = web.DataReader(index, 'fred',start=from_,end=to)
+
         return index.dropna(how="all")
