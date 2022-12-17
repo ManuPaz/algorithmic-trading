@@ -1,5 +1,5 @@
 # Algorithmic trading
-In this proyect there are algorithms and data structures that can help you with your algorithm trading.
+In this project there are several scripts to download data from free financials API's such as Finhub or Yahoo Finance and use them to backtest diferent algorithmic strategies, or to apply filters with a programatic market screener.
 ## Algorithms
 ### Portfolio allocation
 + **Algorithm1** simply takes a period of time and generates an excel file with the results of different portfolios: same allocation, markowitz, hierarchical risk parity, black litterman, and several reference indices. For the black litterman portfolio, you need to specify in **general_config.yaml** the relative and absolute views of the symbols you will use .
