@@ -1,5 +1,5 @@
 # Algorithmic trading
-In this proyect there are several scripts to download data from free financials API's such as Finhub or Yahoo Finance and use them to backtest diferent algorithmic strategies, or to apply filters with a programatic market screener.
+In this project there are several scripts to download data from free financials API's such as Finhub or Yahoo Finance and use them to backtest diferent algorithmic strategies, or to apply filters with a programatic market screener.
 ## Proyect structure
 With  **index/main_load_data** data is downloaded and saved in  **StocksSummary** and then in a pickle object. When   **index/main_load_data** is executed with different stocks the pickle object is updated so previuos data is not deleted, just modified or extended with new stocks.
 **StocksSummary** keeps differente info, but mainly: on one side actual stocks info to use in the screener and on the other side a list of **Stock** objects, where each stock keeps its historic financial series.
@@ -12,3 +12,8 @@ With  **index/main_load_data** data is downloaded and saved in  **StocksSummary*
   * **alpha_vantage_key**
   * **polygon_key**
   * **finhub_key**
+## Algorithms
+
++ **Algorithm1** simply takes a period of time and generates an excel file with the results of different portfolios: same allocation, markowitz, hierarchical risk parity, black litterman, and several reference indices. For the black litterman portfolio, you need to specify in **general_config.yaml** the relative and absolute views of the symbols you will use .
+* **Algorithm2** is the same as **algorithm1** but pairs of training and testing intervals (testing is always next to training) are generated with some randomness using a training  interval length and testing interval length. Then weights are generated in training and used in testing for  markowitz, hierarchical risk parity and black litterman algorithms.
+Results for each interval, both in training and testing, are saved to compare the different algorithms. Results for same allocation and index such as sp500 are also saved.
