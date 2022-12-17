@@ -13,12 +13,8 @@ from src.functions.financial_functions import portfolio_returns
 logging.config.fileConfig('resources/logging.conf')
 logger = logging.getLogger('general')
 import pickle
+from bs4 import BeautifulSoup
 import nltk
 if __name__=="__main__":
-    with open("resources/stocks_summary.obj", "rb") as stocks_summary_file:
-        stocks_summary = pickle.load(stocks_summary_file)
-
-    with open("resources/other_equities.obj", "rb") as other_equities_file:
-        other_equities = pickle.load(other_equities_file)
-
-    stocks_summary
+    nltk.download('stopwords')
+    nltk.download('wordnet')

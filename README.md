@@ -13,7 +13,7 @@ With  **index/main_load_data** data is downloaded and saved in  **StocksSummary*
   * **polygon_key**
   * **finhub_key**
 ## Algorithms
-
+### Porfolio allocation
 + **Algorithm1** simply takes a period of time and generates an excel file with the results of different portfolios: same allocation, markowitz, hierarchical risk parity, black litterman, and several reference indices. For the black litterman portfolio, you need to specify in **general_config.yaml** the relative and absolute views of the symbols you will use .
 * **Algorithm2** is the same as **algorithm1** but pairs of training and testing intervals (testing is always next to training) are generated with some randomness using a training  interval length and testing interval length. Then weights are generated in training and used in testing for  markowitz, hierarchical risk parity and black litterman algorithms.
 Results for each interval, both in training and testing, are saved to compare the different algorithms. Results for same allocation and index such as sp500 are also saved.

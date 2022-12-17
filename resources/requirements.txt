@@ -10,3 +10,4 @@ PyPortfolioOpt
 pybind11
 Riskfolio-Lib
 nltk
+ratelimit

@@ -7,6 +7,7 @@ import yahoo_fin.stock_info as si
 import pandas_datareader.data as web
 from src.utils import time_utils
 import logging.config
+from ratelimit import limits, sleep_and_retry
 logging.config.fileConfig('resources/logging.conf')
 logger = logging.getLogger('api_error')
 
@@ -449,3 +450,45 @@ class PandasDataReader():
             index = web.DataReader(index, 'fred',start=from_,end=to)
 
         return index.dropna(how="all")
+
+
+class SecAPI(Api):
+    def __init__(self):
+        super.__init__(None)
+    SEC_CALL_LIMIT = {'calls': 10, 'seconds': 1}
+
+
+    @sleep_and_retry
+    # Dividing the call limit by half to avoid coming close to the limit
+    @limits(calls=SEC_CALL_LIMIT['calls'] / 2, period=SEC_CALL_LIMIT['seconds'])
+    def _call_sec(self,url):
+        return self.session.get(url)
+
+    def get(self, url):
+        return self._call_sec(url).text
+
+
+def print_ten_k_data(ten_k_data, fields, field_length_limit=50):
+    indentation = '  '
+
+    print('[')
+    for ten_k in ten_k_data:
+        print_statement = '{}{{'.format(indentation)
+        for field in fields:
+            value = str(ten_k[field])
+
+            # Show return lines in output
+            if isinstance(value, str):
+                value_str = '\'{}\''.format(value.replace('\n', '\\n'))
+            else:
+                value_str = str(value)
+
+            # Cut off the string if it gets too long
+            if len(value_str) > field_length_limit:
+                value_str = value_str[:field_length_limit] + '...'
+
+            print_statement += '\n{}{}: {}'.format(indentation * 2, field, value_str)
+
+        print_statement += '},'
+        print(print_statement)
+    print(']')

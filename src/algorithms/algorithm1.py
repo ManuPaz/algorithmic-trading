@@ -20,7 +20,12 @@ if __name__ == "__main__":
     with open("resources/other_equities.obj", "rb") as other_equities_file:
         other_equities = pickle.load(other_equities_file)
 
-
+    index = other_equities.index
+    returns = index.pct_change().dropna()
+    for i, column in enumerate(index.columns):
+        kwargs = {"from_": index.dropna(subset=[column]).index[0], "to": index.dropna(subset=[column]).index[-1],
+                  "annualized": annualized, "DAILY_RISK_FREE_RETURN": DAILY_RISK_FREE_RETURN, "title": column}
+        save_results.all_backtesting_results(returns[column], column, "", **kwargs)
     prices = stocks_summary.get_all_prices(list(stocks_summary.stock_objects.keys()))
     returns = prices.loc[:, (slice(None), "adj_close")].droplevel(1, axis=1).pct_change().iloc[1:,:]
     to_high_returns = stocks_summary.clean_data(returns, max_return=MAX_RETURN_DAILY)
