@@ -16,7 +16,7 @@ if __name__=="__main__":
         stocks_summary=pickle.load(stocks_summary_file)
     with open("resources/other_equities.obj","rb") as other_equities_file:
         other_equities=pickle.load(other_equities_file)
-    other_equities.index=work_with_nas.delete_nas(other_equities.index,columns="all")
+    other_equities.index=work_with_nas.drop_rows_with_nas(other_equities.index, columns="all")
     index= other_equities.index
     returns = index.pct_change().dropna()
     for i,column in enumerate(index.columns):

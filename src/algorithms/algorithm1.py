@@ -10,7 +10,8 @@ MAX_RETURN_DAILY = 0.4
 import src.utils.load_config as load_config
 general_config = load_config.general_config()
 import src.functions.financial_functions as financial_functions
-SAVE_RESULTS=False
+import src.utils.time_utils as time_utils
+SAVE_RESULTS=True
 
 if __name__ == "__main__":
     with open("resources/stocks_summary.obj", "rb") as stocks_summary_file:
@@ -29,22 +30,23 @@ if __name__ == "__main__":
     if SAVE_RESULTS:
         save_results.all_backtesting_results(returns_portfolio,"dummy","Dummy algorithm with the same allocation for each stock",**kwargs)
 
-    returns_portfolio=financial_functions .markowitz(returns)
+    returns_portfolio,_=financial_functions .markowitz(returns)
     returns_portfolio
     kwargs["title"]="markowitz"
     if SAVE_RESULTS:
         save_results.all_backtesting_results(returns_portfolio, "markowitz","Markowtiz allocation with with weights summing 1", **kwargs)
 
-    returns_portfolio=financial_functions .black_literman(stocks_summary,returns,other_equities.index["sp500"],
-                                                          absolute_views=general_config["black_literman_absolute_views"],
-                                                          relative_views=general_config["black_literman_relative_views"],
-                                                          risk_free_rate=DAILY_RISK_FREE_RETURN,
-                                                          use_market_caps=True)
+    returns_portfolio,_=financial_functions .black_litterman_allocation(stocks_summary, returns, other_equities.index["sp500"].pct_change().dropna(),
+                                                                        absolute_views=general_config["black_literman_absolute_views"],
+                                                                        relative_views=general_config["black_literman_relative_views"],
+                                                                        risk_free_rate=DAILY_RISK_FREE_RETURN,
+                                                                        use_market_caps=True)
     kwargs["title"] = "black_litterman"
     if SAVE_RESULTS:
         save_results.all_backtesting_results(returns_portfolio, "black_litterman",
                                          "Black Litterman allocation with with weights summing 1", **kwargs)
     kwargs["title"] = "hierarchical risk parity"
-    returns_portfolio=financial_functions.hierarchical_allocation(returns)
-    save_results.all_backtesting_results(returns_portfolio, "hierarchical allocation",
-                                         "Hierarchical Risk Parity allocation with with weights summing 1", **kwargs)
+    returns_portfolio,_=financial_functions.hierarchical_allocation(returns)
+    if SAVE_RESULTS:
+        save_results.all_backtesting_results(returns_portfolio, "hierarchical allocation",
+                                             "Hierarchical Risk Parity allocation with with weights summing 1", **kwargs)

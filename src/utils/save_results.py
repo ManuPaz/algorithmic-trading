@@ -7,12 +7,21 @@ from src.functions import metrics
 general_config = load_config.general_config()
 from scipy import stats as st
 from src.plots import  portfolio_plots
+from src.functions.financial_functions import portfolio_returns
 
+def save_train_test(interval, returns_portfolio_train, returns_test, weights_train, name, df_results_train,
+                    df_results_test, **kwargs):
+    returs_portfolio_test = portfolio_returns(weights_train, returns_test)
 
-
+    multiple_intervals_simulation_save_results(df_results_train, returns_portfolio_train, name,
+                                                            interval["start_train"], interval["end_train"],
+                                                            **kwargs)
+    multiple_intervals_simulation_save_results(df_results_test, returs_portfolio_test, name,
+                                                            interval["start_test"], interval["end_test"],
+                                                            **kwargs)
 def all_backtesting_results(returns_portfolio,name,description,**kwargs):
     portfolio_plots.plot_returns((1 + returns_portfolio).cumprod(), title=kwargs["title"], )
-    metrics_array=metrics.all_metrics_array(returns_portfolio, (1 + returns_portfolio).cumprod(),
+    metrics_array=metrics.all_metrics_array(returns_portfolio,
                         risk_free_return=kwargs["DAILY_RISK_FREE_RETURN"],
                         annualized=kwargs["annualized"])
     if not os.path.isdir(general_config["all_backtesting_results_path"]):
@@ -29,3 +38,10 @@ def all_backtesting_results(returns_portfolio,name,description,**kwargs):
         period=str(period)+" horas"
     data.loc[name,:]=[description,kwargs["DAILY_RISK_FREE_RETURN"]*kwargs["annualized"],kwargs["from_"],kwargs["to"],period]+metrics_array
     data.to_excel(file,index=True)
+
+
+def multiple_intervals_simulation_save_results(df_results,returns_portfolio,name,interval_start,interval_end,**kwargs):
+    metrics_array = metrics.all_metrics_array(returns_portfolio,
+                                              risk_free_return=kwargs["DAILY_RISK_FREE_RETURN"],
+                                              annualized=kwargs["annualized"])
+    df_results.loc[(interval_start,interval_end),(name,["sharpe_ratio","sortino_ratio","return","maximum_drawdown"])]=metrics_array

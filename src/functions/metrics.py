@@ -3,10 +3,11 @@ import numpy as np
 import math
 import pandas as pd
 
-def all_metrics_array(returns,prices, risk_free_return, annualized=1):
-    m=all_metrics(returns,prices, risk_free_return, annualized)
+def all_metrics_array(returns, risk_free_return, annualized=1):
+    m=all_metrics(returns, risk_free_return, annualized)
     return [m["sharpe_ratio"],m["sortino_ratio"],m[ "annualized_return %"],m["maximum_drawdown"]]
-def all_metrics(returns,prices, risk_free_return, annualized=1):
+def all_metrics(returns, risk_free_return, annualized=1):
+    prices=(1 + returns).cumprod()
     return {"sharpe_ratio":sharpe_ratio(returns, risk_free_return, annualized),
             "sortino_ratio":sortino_ratio(returns, risk_free_return, annualized),
             "annualized_return %":annualized_return(returns,annualized),
@@ -27,7 +28,7 @@ def sortino_ratio(returns, risk_free_return, annualized=1):
 
 # Define function to calculate analyzed return
 def annualized_return(returns,annualized=1):
-    n=len(returns)/annualized
+    n=len(returns)/1
     return (np.cumprod(1+returns)[-1]**(1/n)-1)
 
 # Define function to calculate maximum drawdown

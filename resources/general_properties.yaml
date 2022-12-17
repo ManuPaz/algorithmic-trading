@@ -11,7 +11,7 @@ tickers: [ "GOOG","META","AAPL","MSFT","TSLA",
            "JPM","SAN","BAC","WFC","C","GS","MS",
            "AMZN","VISA","MA","PYPL","APPS",
            "OXY","XOM","CVX","DVN","TTE","EOG","MPC",
-           "BABA","PDD","NIO","MELI","ZAL","JD","AMZN"
+           "BABA","PDD","NIO","MELI","JD","AMZN"
 ] #tickers to download series data
 black_literman_absolute_views: {"APPS":0.5,"VRNS":0.6,"MU":0.2,"META":0.1,"TSLA":0.5}
 black_literman_relative_views: [{"ADBE":0.1,"MU":-0.1},{"MSFT":0.2,"META":-0.2}]

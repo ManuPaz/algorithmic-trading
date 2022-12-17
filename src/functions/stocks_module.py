@@ -60,7 +60,7 @@ class StocksSummary():
         if self.dataframe_prices_total is not None  and set(names).issubset(set(self.dataframe_prices_total.columns.levels[0])):
             print("Prices dataframe already calculated")
 
-            return self.dataframe_prices_total
+            return self.dataframe_prices_total.loc[:,(names,slice(None))]
         dataframe_total = None
         for name in names:
             stock=self.stock_objects[name]
@@ -79,6 +79,7 @@ class StocksSummary():
         if column in self.dataframe_prices_by_colum.keys()\
                 and set(names).issubset(set(self.dataframe_prices_by_colum[column].columns)):
             print("{} dataframe already calculated".format(column))
+            return self.dataframe_prices_by_colum[column].loc[:,names]
 
         prices=self.get_all_prices(names)
         prices=prices.loc[:,(slice(None),column)].droplevel(1,axis=1)
@@ -91,6 +92,7 @@ class StocksSummary():
         else:
             symbol_names = symbols
         prices = self.get_all_prices_one_column(symbol_names, "adj_close")
+
         p = prices.loc[:date].iloc[-1]
         p1 = prices.iloc[-1]
         symbols = list(
@@ -138,6 +140,13 @@ class StocksSummary():
 
     def filter_bigfall(self,data):
         data_filtered = data.loc[(data["52WeekPriceReturnDaily"]<(-40)) ]
+        return data_filtered
+
+    def filter_target_prices(self,data):
+        data_filtered = data.loc[(data["targetMedianPrice"]/data["currentPrice"]>=2)
+                                &(data["targetLowPrice"]/data["currentPrice"]>=1.5)
+                                &(data["numberOfAnalystOpinions"]>=4)
+                                &(data["revenueGrowth5Y"]>0)&(data["epsGrowth5Y"]>0)]
         return data_filtered
 
     def filter_columns(self,data):

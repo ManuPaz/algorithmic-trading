@@ -7,20 +7,35 @@ import numpy as np
 import pypfopt.black_litterman as black_litterman
 import riskfolio as rp
 import matplotlib.pyplot as plt
+import logging.config
+logging.config.fileConfig('resources/logging.conf')
+logger = logging.getLogger('api_error')
 def same_allocation(returns):
     symbols_per_day = returns.shape[1] - returns.isna().sum(axis=1)
     returns_portfolio = returns.multiply(1 / symbols_per_day, axis="rows").replace(np.nan, 0)
     returns_portfolio = returns_portfolio.sum(1)
     return  returns_portfolio
+
+
+def portfolio_returns(weights,returns):
+    r=returns.loc[:,weights.index]
+    returns_portolio = np.dot(r.replace(np.nan, 0), weights)
+    serie = pd.Series(returns_portolio)
+    serie.index = returns.index
+    return serie
 def hierarchical_allocation(returns,linkage="single",risk_free_rate=0):
     r=returns.dropna(axis=1)
-    ax = rp.plot_dendrogram(returns=r,
-                            codependence='pearson',
-                            linkage=linkage,
-                            k=None,
-                            max_k=10,
-                            leaf_order=True,
-                            ax=None)
+    try:
+
+        rp.plot_dendrogram(returns=r,
+                                codependence='pearson',
+                                linkage=linkage,
+                                k=None,
+                                max_k=10,
+                                leaf_order=True,
+                                ax=None)
+    except Exception as e:
+     logger.error("HRP allocation: {}".format(e))
     #plt.show()
     port = rp.HCPortfolio(returns=r)
     model = 'HRP'  # Could be HRP or HERC
@@ -29,21 +44,23 @@ def hierarchical_allocation(returns,linkage="single",risk_free_rate=0):
     leaf_order = True  # Consider optimal order of leafs in dendrogram
 
     weights = port.optimization(model=model,
-                          codependence=codependence,
-                          rm=rm,
-                          rf=risk_free_rate,
-                          linkage=linkage,
-                          leaf_order=leaf_order)
-    dic_weights =weights.to_dict()
+                              codependence=codependence,
+                              rm=rm,
+                              rf=risk_free_rate,
+                              linkage=linkage,
+                              leaf_order=leaf_order)
+
+
+    dic_weights =weights.to_dict()["weights"]
     print("Weights herarhical clustering: {}".format(dic_weights))
     weights=weights/weights.sum()
     returns_portolio = np.dot(r.replace(np.nan, 0), weights.values.reshape(-1))
     serie = pd.Series(returns_portolio)
     serie.index = returns.index
-    return serie
+    return serie,pd.Series(dic_weights)
 
 
-def black_literman(stocks_summary, returns, market_price, absolute_views=None,relative_views=None, risk_free_rate=0.02/252, **kwargs):
+def black_litterman_allocation(stocks_summary, returns, market_returns, absolute_views=None, relative_views=None, risk_free_rate=0.02 / 252, **kwargs):
     symbols=list(returns.columns)
     if kwargs["use_market_caps"]:
         m_caps,symbols = stocks_summary.get_market_caps(symbols, returns.index[0], stocks_summary)
@@ -71,7 +88,10 @@ def black_literman(stocks_summary, returns, market_price, absolute_views=None,re
 
     cov=r.cov()
 
-    delta= market_implied_risk_aversion(market_price.pct_change().dropna(), risk_free_rate=risk_free_rate)
+    delta= market_implied_risk_aversion(market_returns, risk_free_rate=risk_free_rate)
+    print("Delta {}".format(delta))
+    if delta<0.2:
+        delta=0.2
     if kwargs["use_market_caps"]:
         bl = BlackLittermanModel(cov,Q=Q,P=P, pi="market", risk_aversion=delta, market_caps=m_caps.to_dict())
     else:
@@ -85,7 +105,7 @@ def black_literman(stocks_summary, returns, market_price, absolute_views=None,re
     serie.index = returns.index
     dic_weights={symbols[i]:weights[i] for i in range(len(weights))}
     print("Weights Black-Litermann {}".format(dic_weights))
-    return  serie
+    return  serie,pd.Series(dic_weights)
 def markowitz(returns):
 
     # Calcular varianzas y covarianzas
@@ -101,7 +121,7 @@ def markowitz(returns):
     h = matrix(0.0, (n, 1))
     A = matrix(1.0, (1, n))
     b = matrix(1.0)
-
+    solvers.options['show_progress'] = False
     # Resolver problema de optimización
     sol = solvers.qp(S, -pbar, G, h, A, b)
     weights=np.array(sol['x']).reshape(-1)
@@ -112,7 +132,7 @@ def markowitz(returns):
     serie = pd.Series(returns_portolio)
     serie.index= returns.index
 
-    return  serie
+    return  serie,pd.Series(dic_weights)
 def market_implied_risk_aversion(market_returns,  risk_free_rate=0.02):
 
     if not isinstance(market_returns , (pd.Series, pd.DataFrame)):
