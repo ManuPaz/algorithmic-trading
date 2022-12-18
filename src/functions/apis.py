@@ -1,5 +1,6 @@
 import requests_cache
 import json
+import re
 import pandas as pd
 import numpy as np
 import csv
@@ -10,7 +11,7 @@ import logging.config
 from ratelimit import limits, sleep_and_retry
 logging.config.fileConfig('resources/logging.conf')
 logger = logging.getLogger('api_error')
-
+from bs4 import BeautifulSoup
 
 
 class Api():
@@ -454,7 +455,7 @@ class PandasDataReader():
 
 class SecAPI(Api):
     def __init__(self):
-        super.__init__(None)
+        super().__init__(None)
     SEC_CALL_LIMIT = {'calls': 10, 'seconds': 1}
 
 
@@ -462,33 +463,70 @@ class SecAPI(Api):
     # Dividing the call limit by half to avoid coming close to the limit
     @limits(calls=SEC_CALL_LIMIT['calls'] / 2, period=SEC_CALL_LIMIT['seconds'])
     def _call_sec(self,url):
-        return self.session.get(url)
+        return self.session.get(url,headers={'User-agent': 'Mozilla/5.0'})
 
     def get(self, url):
         return self._call_sec(url).text
 
 
-def print_ten_k_data(ten_k_data, fields, field_length_limit=50):
-    indentation = '  '
+    def print_ten_k_data(self,ten_k_data, fields, field_length_limit=50):
+        indentation = '  '
 
-    print('[')
-    for ten_k in ten_k_data:
-        print_statement = '{}{{'.format(indentation)
-        for field in fields:
-            value = str(ten_k[field])
+        print('[')
+        for ten_k in ten_k_data:
+            print_statement = '{}{{'.format(indentation)
+            for field in fields:
+                value = str(ten_k[field])
 
-            # Show return lines in output
-            if isinstance(value, str):
-                value_str = '\'{}\''.format(value.replace('\n', '\\n'))
-            else:
-                value_str = str(value)
+                # Show return lines in output
+                if isinstance(value, str):
+                    value_str = '\'{}\''.format(value.replace('\n', '\\n'))
+                else:
+                    value_str = str(value)
 
-            # Cut off the string if it gets too long
-            if len(value_str) > field_length_limit:
-                value_str = value_str[:field_length_limit] + '...'
+                # Cut off the string if it gets too long
+                if len(value_str) > field_length_limit:
+                    value_str = value_str[:field_length_limit] + '...'
 
-            print_statement += '\n{}{}: {}'.format(indentation * 2, field, value_str)
+                print_statement += '\n{}{}: {}'.format(indentation * 2, field, value_str)
 
-        print_statement += '},'
-        print(print_statement)
-    print(']')
+            print_statement += '},'
+            print(print_statement)
+        print(']')
+
+    def get_sec_data(self,cik, doc_type, start=0, count=60):
+        rss_url = 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany' \
+                  '&CIK={}&type={}&start={}&count={}&owner=exclude&output=atom' \
+            .format(cik, doc_type, start, count)
+        sec_data = self.get(rss_url)
+        feed = BeautifulSoup(sec_data.encode('ascii'), 'xml').feed
+        entries = [
+            (
+                entry.content.find('filing-href').getText(),
+                entry.content.find('filing-type').getText(),
+                entry.content.find('filing-date').getText())
+            for entry in feed.find_all('entry', recursive=False)]
+
+        return entries
+
+    def get_documents(self,text):
+        extracted_docs = []
+
+        doc_start_pattern = re.compile(r'<DOCUMENT>')
+        doc_end_pattern = re.compile(r'</DOCUMENT>')
+
+        doc_start_is = [x.end() for x in doc_start_pattern.finditer(text)]
+        doc_end_is = [x.start() for x in doc_end_pattern.finditer(text)]
+
+        for doc_start_i, doc_end_i in zip(doc_start_is, doc_end_is):
+            extracted_docs.append(text[doc_start_i:doc_end_i])
+
+        return extracted_docs
+
+    def get_document_type(self,doc):
+
+        type_pattern = re.compile(r'<TYPE>[^\n]+')
+
+        doc_type = type_pattern.findall(doc)[0][len('<TYPE>'):]
+
+        return doc_type.lower()

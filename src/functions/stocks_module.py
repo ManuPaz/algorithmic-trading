@@ -61,17 +61,13 @@ class StocksSummary():
             print("Prices dataframe already calculated")
 
             return self.dataframe_prices_total.loc[:,(names,slice(None))]
-        dataframe_total = None
+        prices_dict={}
         for name in names:
             stock=self.stock_objects[name]
-
             if stock.prices is not None:
-                prices = stock.prices.copy()
-                prices.columns = pd.MultiIndex.from_product([[name], prices.columns])
-                if dataframe_total is None:
-                    dataframe_total=prices
-                else:
-                    dataframe_total=pd.merge(dataframe_total,prices,right_index=True,left_index=True,how="outer")
+                prices_dict[stock.name]=stock.prices
+
+        dataframe_total=pd.concat(prices_dict,axis=1,join="outer")
         self.dataframe_prices_total=dataframe_total
         return dataframe_total.loc[:,(names,slice(None))]
 
@@ -84,6 +80,7 @@ class StocksSummary():
         prices=self.get_all_prices(names)
         prices=prices.loc[:,(slice(None),column)].droplevel(1,axis=1)
         self.dataframe_prices_by_colum[column]=prices
+        names=list(set(names).intersection(set(prices.columns)))
         return prices.loc[:,names]
 
     def get_market_caps(self,symbols, date, stocks_summary):
@@ -95,13 +92,14 @@ class StocksSummary():
 
         p = prices.loc[:date].iloc[-1]
         p1 = prices.iloc[-1]
+        f_summary=self.fundamental_summary_complete.loc[self.fundamental_summary_complete.marketCapitalization.notna()]
         symbols = list(
-            (set(self.fundamental_summary_complete.droplevel(1).index).intersection(set(symbols))).difference(
+            (set( f_summary.droplevel(1).index).intersection(set(symbols))).difference(
                 set(p.loc[p.isna()].index).union(set(p.loc[p1.isna()].index))))
         if isinstance(symbols[0], tuple):
-            m_caps_actual = self.fundamental_summary.loc[symbols, "marketCapitalization"]
+            m_caps_actual =  f_summary.loc[symbols, "marketCapitalization"]
         else:
-            m_caps_actual = self.fundamental_summary_complete.droplevel(1).loc[
+            m_caps_actual =  f_summary.droplevel(1).loc[
                 symbols, "marketCapitalization"].drop_duplicates()
 
         market_caps = (m_caps_actual * (p / p1)).loc[symbols]

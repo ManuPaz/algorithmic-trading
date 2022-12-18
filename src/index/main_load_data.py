@@ -15,7 +15,7 @@ import src.utils.load_config as load_config
 secret_config = load_config.secret_config()
 general_config = load_config.general_config()
 import logging.config
-
+only_prices=False
 logging.config.fileConfig('resources/logging.conf')
 logger = logging.getLogger('general')
 pd.set_option('display.max_columns', 500)
@@ -77,24 +77,34 @@ if __name__ == '__main__':
         pickle.dump(stocks_summary, file, protocol=pickle.HIGHEST_PROTOCOL)
     tiempo1 = time.time()
     tickers=general_config["tickers"]
+    #tickers=stocks_summary.fundamental_summary_complete.index.get_level_values(0)
     for ticker in tickers:
         logger.info("Getting {} info ...".format(ticker))
-        indicators=finhub.get_technical_indicators(ticker,indicators=["ema","sma","macd","adx","rsi"],resolution=general_config["PRICES_INTERVAL"],from_=general_config["FROM"],to=general_config["TO"])
-        earnings_a, earnings_q, earnings_trend = yFinance.get_earnings(ticker)
-        twitter, reddit = finhub.get_sentiment(ticker)
-        sentiment=alpha_vantage.get_sentiments(ticker)
-        annual_results = finhub.get_basic_financials(ticker)
-        quarterly_resuts = finhub.get_basic_financials(ticker, freq="quarterly")
         prices = yFinance.get_stock_prices(ticker, interval=general_config["PRICES_INTERVAL"],
-                                           range=general_config["PRICES_RANGE"],from_=general_config["FROM"],to=general_config["TO"])
-        recomendation = finhub.get_recomendation_trends(ticker)
-        calls, puts = yFinance.get_options(ticker)
-        kwargs={"sentiment":pd.DataFrame(),"twitter":twitter,"reddit":reddit,
-                "annual_eps":earnings_a,"quarterly_eps":earnings_q,"trending_eps":earnings_trend,
-                "puts":puts,"calls":calls,"quarterly_financials":quarterly_resuts,
-                "annual_financials":annual_results,"recomendation":recomendation,"indicators":indicators}
-        stock = stocks_module.Stock(name=ticker, prices=prices,**kwargs )
-        stocks_summary.stock_objects[ticker] = stock
+                                           range=general_config["PRICES_RANGE"], from_=general_config["FROM"],
+                                           to=general_config["TO"])
+        if not only_prices:
+            indicators=finhub.get_technical_indicators(ticker,indicators=["ema","sma","macd","adx","rsi"],resolution=general_config["PRICES_INTERVAL"],from_=general_config["FROM"],to=general_config["TO"])
+            earnings_a, earnings_q, earnings_trend = yFinance.get_earnings(ticker)
+            twitter, reddit = finhub.get_sentiment(ticker)
+            sentiment=alpha_vantage.get_sentiments(ticker)
+            annual_results = finhub.get_basic_financials(ticker)
+            quarterly_resuts = finhub.get_basic_financials(ticker, freq="quarterly")
+
+            recomendation = finhub.get_recomendation_trends(ticker)
+            calls, puts = yFinance.get_options(ticker)
+            kwargs={"sentiment":pd.DataFrame(),"twitter":twitter,"reddit":reddit,
+                    "annual_eps":earnings_a,"quarterly_eps":earnings_q,"trending_eps":earnings_trend,
+                    "puts":puts,"calls":calls,"quarterly_financials":quarterly_resuts,
+                    "annual_financials":annual_results,"recomendation":recomendation,"indicators":indicators}
+
+            stock = stocks_module.Stock(name=ticker, prices=prices,**kwargs )
+            stocks_summary.stock_objects[ticker] = stock
+        elif ticker not in stocks_summary.stock_objects.keys():
+            print(ticker)
+            stock = stocks_module.Stock(name=ticker, prices=prices)
+            stocks_summary.stock_objects[ticker] = stock
+
     with open("resources/stocks_summary.obj", "wb") as file:
             pickle.dump(stocks_summary, file, protocol=pickle.HIGHEST_PROTOCOL)
 
