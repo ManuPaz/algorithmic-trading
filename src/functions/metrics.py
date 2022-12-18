@@ -28,7 +28,7 @@ def sortino_ratio(returns, risk_free_return, annualized=1):
 
 # Define function to calculate analyzed return
 def annualized_return(returns,annualized=1):
-    n=len(returns)/1
+    n=len(returns)/annualized
     return (np.cumprod(1+returns)[-1]**(1/n)-1)
 
 # Define function to calculate maximum drawdown

@@ -5,7 +5,8 @@ from pypfopt.efficient_frontier import EfficientFrontier
 import pandas as pd
 import numpy as np
 import pypfopt.black_litterman as black_litterman
-import riskfolio as rp
+from pyhrp.hrp import dist, linkage, tree, _hrp
+from scipy.cluster.hierarchy import dendrogram
 import matplotlib.pyplot as plt
 import logging.config
 logging.config.fileConfig('resources/logging.conf')
@@ -23,36 +24,21 @@ def portfolio_returns(weights,returns):
     serie = pd.Series(returns_portolio)
     serie.index = returns.index
     return serie
-def hierarchical_allocation(returns,linkage="single",risk_free_rate=0):
+def hierarchical_allocation(returns,linkage_t="single",risk_free_rate=0):
     r=returns.dropna(axis=1)
-    try:
+    cov, cor = r.cov(), r.corr()
+    links = linkage(dist(cor.values), method=linkage_t)
+    node = tree(links)
 
-        rp.plot_dendrogram(returns=r,
-                                codependence='pearson',
-                                linkage=linkage,
-                                k=None,
-                                max_k=10,
-                                leaf_order=True,
-                                ax=None)
-    except Exception as e:
-     logger.error("HRP allocation: {}".format(e))
-    #plt.show()
-    port = rp.HCPortfolio(returns=r)
-    model = 'HRP'  # Could be HRP or HERC
-    codependence = 'pearson'  # Correlation matrix used to group assets in clusters
-    rm = 'MV'  # Risk measure used, this time will be variance
-    leaf_order = True  # Consider optimal order of leafs in dendrogram
-
-    weights = port.optimization(model=model,
-                              codependence=codependence,
-                              rm=rm,
-                              rf=risk_free_rate,
-                              linkage=linkage,
-                              leaf_order=leaf_order)
+    rootcluster = _hrp(node, cov)
+    plt.figure()
+    ax=dendrogram(links, orientation="left",labels=list(r.columns))
+    plt.show()
+    weights= pd.Series(rootcluster.assets)
 
 
-    dic_weights =weights.to_dict()["weights"]
-    print("Weights herarhical clustering: {}".format(dic_weights))
+    dic_weights =weights.to_dict()
+    print("Weights herarhical clustering: {},{}".format(dic_weights,weights.sum()))
     weights=weights/weights.sum()
     returns_portolio = np.dot(r.replace(np.nan, 0), weights.values.reshape(-1))
     serie = pd.Series(returns_portolio)
@@ -77,7 +63,7 @@ def black_litterman_allocation(stocks_summary, returns, market_returns, absolute
     if absolute_views is not None:
         for i,view in enumerate(absolute_views.keys()):
             Q[i]=absolute_views[view]
-            P[i,symbols.index(view)]=1 if absolute_views[view]>0 else 0
+            P[i,symbols.index(view)]=1 if absolute_views[view]!=0 else 0
         desp=i+1
     if relative_views is not None:
         for i,elem in enumerate(relative_views):

@@ -3,7 +3,7 @@ import os
 import json
 import pandas as pd
 from src.functions import metrics
-
+import glob
 os.chdir("../../")
 from src.utils import save_results
 import numpy as np
@@ -26,7 +26,7 @@ import src.utils.time_utils as time_utils
 from src.utils.clean_df import drop_columns_with_many_nas, drop_zeros
 from src.utils.save_results import save_train_test
 SAVE_RESULTS = True
-
+from dateutil import  relativedelta
 
 
 
@@ -37,15 +37,16 @@ if __name__ == "__main__":
 
     with open("resources/other_equities.obj", "rb") as other_equities_file:
         other_equities = pickle.load(other_equities_file)
-
-    prices = stocks_summary.get_all_prices(list(stocks_summary.stock_objects.keys()))
-    returns = prices.loc[:, (slice(None), "adj_close")].droplevel(1, axis=1).pct_change().iloc[1:, :]
-    intervals = time_utils.generate_random_intervals(returns.index[0], returns.index[-1], train_duration=120,
-                                                     test_duration=60,
+    initial_date=datetime.datetime.strptime(general_config["algorithm2"]["initial_date"],"%Y-%m-%d")
+    prices = stocks_summary.get_all_prices_one_column(general_config["algorithm2"]["tickers"],"adj_close")
+    returns = prices.pct_change().loc[initial_date:]
+    intervals = time_utils.generate_random_intervals(returns.index[0], returns.index[-1], train_duration=general_config["algorithm2"]["train_duration"],
+                                                     test_duration=general_config["algorithm2"]["test_duration"],
                                                      frequency="d")
 
     baseselines_index = other_equities.index
-    returns_index = baseselines_index.pct_change()
+
+    returns_index = baseselines_index.pct_change().loc[initial_date:]
     returns_index = drop_columns_with_many_nas(returns_index)
     algorithms = ["same_allocation", "markowtiz", "black_literman", "hierarchical_risk_parity"] + list(
         returns_index.columns)
@@ -56,6 +57,36 @@ if __name__ == "__main__":
     df_results_test = pd.DataFrame(index=index, columns=pd.MultiIndex.from_product([algorithms, metrics]))
     kwargs = {"DAILY_RISK_FREE_RETURN": DAILY_RISK_FREE_RETURN, "annualized": annualized}
     dic_weights = {"markowitz": {}, "black_literman": {}, "hierarchical_risk_parity": {}}
+
+    if general_config["algorithm2"]["weights_future"]:
+        interval=pd.Series({"start_train":returns.index[-1]-relativedelta.relativedelta(days=general_config["algorithm2"]["train_duration"]),
+                            "end_train":returns.index[-1]})
+        returns_train = returns.loc[interval["start_train"]:interval["end_train"]]
+        returns_train = drop_columns_with_many_nas(returns_train)
+        returns_train = drop_zeros(returns_train)
+        portfolio_train_markowitz, w_markowitz = markowitz(returns_train)
+        dic_weights["markowitz"][str((interval["start_train"], interval["end_train"]))] = w_markowitz.to_dict()
+        market_ret = returns_index.loc[interval["start_train"]:interval["end_train"], "sp500"]
+        portfolio_train_black_litterman, w_black_literman = black_litterman_allocation(stocks_summary, returns_train,
+                                                                                       market_ret,
+                                                                                       absolute_views=
+                                                                                       general_config["algorithm2"][
+                                                                                           "black_literman_absolute_views_future"],
+                                                                                       relative_views=
+                                                                                       general_config["algorithm2"][
+                                                                                           "black_literman_relative_views_future"],
+                                                                                       risk_free_rate=DAILY_RISK_FREE_RETURN,
+                                                                                       use_market_caps=True)
+        dic_weights["black_literman"][str((interval["start_train"], interval["end_train"]))] = w_black_literman.to_dict()
+        print("Train interval {}".format(interval))
+        portfolio_train_hrp, w_hrp = hierarchical_allocation(returns_train)
+        dic_weights["hierarchical_risk_parity"][str((interval["start_train"], interval["end_train"]))] = w_hrp.to_dict()
+        dir = "reports/backtesting/simulations/algorithm2"
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
+        with open(os.path.join(dir, "weights.json"), "w") as file:
+            json.dump(dic_weights, file)
+        exit()
     for interval in intervals.iterrows():
         interval = interval[1]
         returns_train = returns.loc[interval["start_train"]:interval["end_train"]]
@@ -80,9 +111,9 @@ if __name__ == "__main__":
         market_ret = returns_index.loc[interval["start_train"]:interval["end_train"], "sp500"]
         portfolio_train_black_litterman, w_black_literman = black_litterman_allocation(stocks_summary, returns_train,
                                                                                        market_ret,
-                                                                                       absolute_views=general_config[
+                                                                                       absolute_views=general_config["algorithm2"][
                                                                                            "black_literman_absolute_views"],
-                                                                                       relative_views=general_config[
+                                                                                       relative_views=general_config["algorithm2"][
                                                                                            "black_literman_relative_views"],
                                                                                        risk_free_rate=DAILY_RISK_FREE_RETURN,
                                                                                        use_market_caps=True)
@@ -126,5 +157,7 @@ if __name__ == "__main__":
     slice(None), "return")].values * 252
     df_results_train.loc[("mean", "mean"), (slice(None), "return")] = df_results_train.loc[("mean", "mean"), (
     slice(None), "return")].values * 252
-    df_results_train.to_excel(os.path.join(dir, str(datetime.date.today()) + "_train.xlsx"), index=True)
-    df_results_test.to_excel(os.path.join(dir, str(datetime.date.today()) + "_test.xlsx"), index=True)
+    csv_files = glob.glob(dir+"/*.xlsx")
+    i=int(len(csv_files)/2)+1
+    df_results_train.to_excel(os.path.join(dir,"simulation"+ str(i) + "_train.xlsx"), index=True)
+    df_results_test.to_excel(os.path.join(dir, "simulation"+str(i) + "_test.xlsx"), index=True)

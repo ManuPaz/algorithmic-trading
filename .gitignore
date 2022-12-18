@@ -5,3 +5,6 @@ resources/secret_properties.yaml
 **/__pycache__/**
 **/.idea/**
 **.obj
+**.xlsx
+**.png
+**/reports/**
