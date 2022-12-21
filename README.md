@@ -5,7 +5,9 @@ In this project there are several scripts to download data from free financials 
 + **Algorithm1** simply takes a period of time and generates an excel file with the results of different portfolios: same allocation, markowitz, hierarchical risk parity, black litterman, and several reference indices. For the black litterman portfolio, you need to specify in **general_config.yaml** the relative and absolute views of the symbols you will use .
 * **Algorithm2** is the same as **algorithm1** but pairs of training and testing intervals (testing is always next to training) are generated with some randomness using a training  interval length and testing interval length. Then weights are generated in training and used in testing for  markowitz, hierarchical risk parity and black litterman algorithms.
 Results for each interval, both in training and testing, are saved to compare the different algorithms. Results for same allocation and index such as sp500 are also saved.
+### NLP
 * **Algorithm3**. Different stock's 10-K or 10-q documents are processed using natural language processing. Then we assign sentiments to each doc and determine alpha factors for each sentiment. Alpha factors help us to predict next year or next quarter returns based on previous 10-K or 10-Q documents.
+* **Algorithm4** Identify pairs trading using natural language processing on the stocks descriptions and then clustering then using then dbscan. On the pairs we use bayeasian regresion with pymc to estimate beta using a gaussian process and then a mean reversion strategy is implemented using that beta.
 ## Proyect structure
 The most important folder in the project is **src/algorithms**. There are several algorithms to backtest traing strategies. Some of them use a data structure called **StockSummary** that is saved in a pickle object and has all the stock's data that is needed.
 
