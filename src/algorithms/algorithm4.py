@@ -1,6 +1,6 @@
 import re
 import os
-
+import numpy as np
 if os.getcwd().split("\\")[-1] == "algorithms":
     os.chdir("../../")
 import logging.config
@@ -14,10 +14,123 @@ import pickle
 from wordcloud import WordCloud
 import src.functions.clustering as clustering
 import src.functions.machine_learning as machine_learning
-
+import pandas as pd
 general_config = load_config.general_config()
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import CountVectorizer
+
+
+def getStrategyPortfolioWeights(rolling_beta, stock_name1, stock_name2, data, smoothing_window=15):
+    data1 = data[stock_name1].ffill().fillna(0).values
+
+
+    data2 = data[stock_name2].ffill().fillna(0).values
+    # initial signal rebalance
+    fixed_beta = rolling_beta[smoothing_window]
+    signal = fixed_beta * data1 - data2
+    smoothed_signal = pd.Series(signal).rolling(smoothing_window).mean()
+    d_smoothed_signal = smoothed_signal.diff()
+    trading = "not"
+    trading_start = 0
+    leverage = 0 * data.copy()
+    for i in range(smoothing_window, data1.shape[0]):
+        leverage.iloc[i, :] = leverage.iloc[i - 1, :]
+        if trading == "not":
+            # dynamically rebalance the signal when not trading
+            fixed_beta = rolling_beta[i]
+            signal = fixed_beta * data1 - data2
+            smoothed_signal = pd.Series(signal).rolling(smoothing_window).mean()
+            d_smoothed_signal = smoothed_signal.diff()
+            if smoothed_signal[i] > 0 and d_smoothed_signal[i] < 0:
+                    leverage.iloc[i, 0] = -fixed_beta / (abs(fixed_beta) + 1)
+                    leverage.iloc[i, 1] = 1 / (abs(fixed_beta) + 1)
+                    trading = "short"
+                    trading_start = smoothed_signal[i]
+            elif smoothed_signal[i] < 0 and d_smoothed_signal[i] > 0:
+                fixed_beta = rolling_beta[i]
+                leverage.iloc[i, 0] = fixed_beta / (abs(fixed_beta) + 1)
+                leverage.iloc[i, 1] = -1 / (abs(fixed_beta) + 1)
+                trading = "long"
+                trading_start = smoothed_signal[i]
+            else:
+                leverage.iloc[i, 0] = 0
+                leverage.iloc[i, 1] = 0
+        elif trading == "long":
+            # a failed trade
+            if smoothed_signal[i] < trading_start:
+                leverage.iloc[i, 0] = 0
+                leverage.iloc[i, 1] = 0
+                trading = "not"
+            # a successful trade
+            if smoothed_signal[i] > 0:
+                leverage.iloc[i, 0] = 0
+                leverage.iloc[i, 1] = 0
+                trading = "not"
+        elif trading == "short":
+            # a failed trade
+            if smoothed_signal[i] > trading_start:
+                leverage.iloc[i, 0] = 0
+                leverage.iloc[i, 1] = 0
+                trading = "not"
+            # a successful trade
+            if smoothed_signal[i] < 0:
+                leverage.iloc[i, 0] = 0
+                leverage.iloc[i, 1] = 0
+                trading = "not"
+
+    return leverage
+
+
+
+
+
+def backtest(pricingDF, leverageDF, start_cash):
+    """Backtests pricing based on some given set of leverage. Leverage works such that it happens "overnight",
+    so leverage for "today" is applied to yesterday's close price. This algo can handle NaNs in pricing data
+    before a stock exists, but ffill() should be used for NaNs that occur after the stock has existed, even
+    if that stock ceases to exist later."""
+
+    pricing = pricingDF.values
+    leverage = leverageDF.values
+
+    shares = np.zeros_like(pricing)
+    cash = np.zeros(pricing.shape[0])
+    cash[0] = start_cash
+    curr_price = np.zeros(pricing.shape[1])
+    curr_price_div = np.zeros(pricing.shape[1])
+
+    for t in range(1, pricing.shape[0]):
+
+        if np.any(leverage[t] != leverage[t - 1]):
+            # handle non-existent stock values
+            curr_price[:] = pricing[t - 1]  # you can multiply with this one
+            curr_price[np.isnan(curr_price)] = 0
+            trading_allowed = (curr_price != 0)
+            curr_price_div[:] = curr_price  # you can divide with this one
+            curr_price_div[~trading_allowed] = 1
+
+            # determine new positions (warning: leverage to non-trading_allowed stocks is just lost)
+            portfolio_value = (shares[t - 1] * curr_price).sum() + cash[t - 1]
+            target_shares = trading_allowed * (portfolio_value * leverage[t]) // curr_price_div
+
+            # rebalance
+            shares[t] = target_shares
+            cash[t] = cash[t - 1] - ((shares[t] - shares[t - 1]) * curr_price).sum()
+
+        else:
+
+            # maintain positions
+            shares[t] = shares[t - 1]
+            cash[t] = cash[t - 1]
+
+    returns = (shares * np.nan_to_num(pricing)).sum(axis=1) + cash
+    pct_returns = (returns - start_cash) / start_cash
+    return (
+        pd.DataFrame(shares, index=pricingDF.index, columns=pricingDF.columns),
+        pd.Series(cash, index=pricingDF.index),
+        pd.Series(pct_returns, index=pricingDF.index)
+    )
+
 
 
 def visualize_cluster(profiles_df, cluster, ):
@@ -89,5 +202,15 @@ if __name__ == "__main__":
     clustered_index = profiles.loc[profiles["cluster"] == cluster].index
     prices_cluster = prices.loc[:, clustered_index]
     prices_cluster = prices_cluster.diff().cumsum().bfill()
-    machine_learning.bayesian_cointegration_regresion(prices_cluster.iloc[:, 0].values,
+    rolling_beta=machine_learning.bayesian_cointegration_regresion(prices_cluster.iloc[:, 0].values,
                                                       prices_cluster.iloc[:, 1].values, prices_cluster.index)
+    portfolioWeights = getStrategyPortfolioWeights(rolling_beta,  prices_cluster.columns[0],  prices_cluster.columns[1], prices_cluster).fillna(0)
+    shares, cash, returns = backtest(prices_cluster, portfolioWeights, 1e6)
+    plt.figure(figsize=(18, 8))
+    ax = plt.gca()
+    plt.title("Return Profile of Algorithm")
+    plt.ylabel("Percent Returns")
+    returns.plot(ax=ax, linewidth=3)
+    vals = ax.get_yticks()
+    ax.set_yticklabels(['{:,.0%}'.format(x) for x in vals])
+    plt.show()

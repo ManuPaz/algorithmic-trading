@@ -31,7 +31,6 @@ def plot_cluster(df_clusters,pricing,which_cluster, plot_mean=False):
     symbols = list(df_clusters[df_clusters["cluster"] == which_cluster].index)
 
     pricing = pricing[symbols]
-
     means = np.log(pricing).mean()
     data = np.log(pricing).sub(means)
 
