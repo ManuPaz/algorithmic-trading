@@ -1,0 +1,16 @@
+pandas
+numpy
+matplotlib
+seaborn
+requests-cache
+sklearn
+pyYaml
+plotly-express
+gym==0.19.0
+gym-anytrading
+stable-baselines
+tensorflow==1.15.0
+yahoo-fin
+pandas-datareader
+ratelimit
+protobuf==3.20.*

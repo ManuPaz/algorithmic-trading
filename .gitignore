@@ -8,3 +8,4 @@ resources/secret_properties.yaml
 **.xlsx
 **.png
 **/reports/**
+**/pruebas/**

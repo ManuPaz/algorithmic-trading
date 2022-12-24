@@ -8,6 +8,17 @@ Results for each interval, both in training and testing, are saved to compare th
 ### NLP
 * **Algorithm3**. Different stock's 10-K or 10-q documents are processed using natural language processing. Then we assign sentiments to each doc and determine alpha factors for each sentiment. Alpha factors help us to predict next year or next quarter returns based on previous 10-K or 10-Q documents.
 * **Algorithm4** Identify pairs trading using natural language processing on the stocks descriptions and then clustering then using then dbscan. On the pairs we use bayeasian regresion with pymc to estimate beta using a gaussian process and then a mean reversion strategy is implemented using that beta.
+### Reinforcement learning
+* **Algorithm5**. Script to do reinforcement learning using gym_anytrading and stable baselines.
+## Requirements
+* **General requirements** .
+  * ```pip install -r resources/requirements.txt``` 
+* **Algorithm4 (because of pymc3)**.  You should use a different environment:
+  * ```pip install -r resources/algorithm4/requirements.txt``` 
+  * ``` conda install m2w64-toolchain     ```
+  * ``` conda install libpython ```
+* **Algorithm5 (because of tensorflow version 1.15.0 to use in stable-baselines)**.
+  * ```pip install -r resources/algorithm5/requirements.txt``` 
 ## Proyect structure
 The most important folder in the project is **src/algorithms**. There are several algorithms to backtest traing strategies. Some of them use a data structure called **StockSummary** that is saved in a pickle object and has all the stock's data that is needed.
 

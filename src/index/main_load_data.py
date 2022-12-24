@@ -23,8 +23,10 @@ if __name__ == '__main__':
 
     tiempo1 = time.time()
     stocks_summary = None
-    if os.path.isfile("resources/stocks_summary.obj"):
-        with open("resources/stocks_summary.obj", "rb") as file:
+    file_stocks="resources/algorithm5/stocks_summary.obj"
+    file_index="resources/algorithm5/other_equities.obj"
+    if os.path.isfile(file_stocks):
+        with open(file_stocks, "rb") as file:
             stocks_summary = pickle.load(file)
     alpha_vantage = apis.AlphaVantage(secret_config["alpha_vantage_key"])
     finhub = apis.Finhub(secret_config["finhub_key"])
@@ -35,14 +37,19 @@ if __name__ == '__main__':
     if indice_name=="russell2000":
         tickers = list(pd.read_csv("data/russell2000_stockslisted.csv")["Symbol"].values)
     else:
-        tickers=yFinance.get_tickers(indice_name)
-    tickers.sort()
+        try:
+            tickers=yFinance.get_tickers(indice_name)
+            tickers.sort()
+            logger.info("Numero de tickers {}".format(len(tickers)))
+        except Exception as e:
+            logger.error(e)
+
     index = pandas_data_reader.get_index(["sp500", "nasdaq100",],from_=general_config["FROM"],to=general_config["TO"])
     economic_calendar = alpha_vantage.get_macroeconomic_data()
     other_equities=stocks_module.OtherEquities(index=index,economic_calendar=economic_calendar)
-    with open("resources/other_equities.obj", "wb") as file_equities:
+    with open(file_index, "wb") as file_equities:
         pickle.dump(other_equities, file_equities, protocol=pickle.HIGHEST_PROTOCOL)
-    logger.info("Numero de tickers {}".format(len(tickers)))
+
     earnings_calendar = alpha_vantage.get_earnings_calendar(horizon="3month")
     if stocks_summary is not None:
 
@@ -73,7 +80,7 @@ if __name__ == '__main__':
     elif  stocks_summary is None:
         stocks_summary = stocks_module.StocksSummary()
 
-    with open("resources/stocks_summary.obj", "wb") as file:
+    with open(file_stocks, "wb") as file:
         pickle.dump(stocks_summary, file, protocol=pickle.HIGHEST_PROTOCOL)
     tiempo1 = time.time()
     tickers=general_config["tickers"]
@@ -105,7 +112,7 @@ if __name__ == '__main__':
             stock = stocks_module.Stock(name=ticker, prices=prices)
             stocks_summary.stock_objects[ticker] = stock
 
-    with open("resources/stocks_summary.obj", "wb") as file:
+    with open(file_stocks, "wb") as file:
             pickle.dump(stocks_summary, file, protocol=pickle.HIGHEST_PROTOCOL)
 
     logger.info("Second query time: {}".format(time.time() - tiempo1))

@@ -30,7 +30,7 @@ def bayesian_cointegration_regresion(data1,data2,indice):
     with model:
         stock1.set_value(data1)
         stock2.set_value(data2)
-        trace = pm.sample(800, tune=400, cores=16,progressbar=True)
+        trace = pm.sample(1000, tune=400, cores=1,progressbar=True)
     rolling_beta = trace[beta].T.mean(axis=1)
     plt.figure(figsize=(18, 8))
     ax = plt.gca()

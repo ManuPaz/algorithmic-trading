@@ -1,5 +1,5 @@
 pandas
-numpy==1.22.0
+numpy
 matplotlib
 seaborn
 requests-cache
@@ -13,7 +13,13 @@ ratelimit
 beautifulsoup4
 alphalens
 wordcloud
-pymc3==3.11.5
+plotly-express
 pybind11
 pyhrp
 openpyxl
+PyYAML
+plotly-express
+stable-baselines3[extra]
+gym
+gym-anytrading
+mplfinance

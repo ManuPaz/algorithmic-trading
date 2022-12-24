@@ -31,7 +31,7 @@ def hierarchical_allocation(returns,linkage_t="single",risk_free_rate=0):
     node = tree(links)
 
     rootcluster = _hrp(node, cov)
-    plt.figure()
+    plt.figure(figsize=(10,20))
     ax=dendrogram(links, orientation="left",labels=list(r.columns))
     plt.show()
     weights= pd.Series(rootcluster.assets)

@@ -2,6 +2,7 @@ import re
 import os
 import numpy as np
 if os.getcwd().split("\\")[-1] == "algorithms":
+    print(os.getcwd())
     os.chdir("../../")
 import logging.config
 import src.functions.nlp as nlp
@@ -19,7 +20,7 @@ general_config = load_config.general_config()
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import CountVectorizer
 
-
+MAKE_CLUSTERS=False
 def getStrategyPortfolioWeights(rolling_beta, stock_name1, stock_name2, data, smoothing_window=15):
     data1 = data[stock_name1].ffill().fillna(0).values
 
@@ -179,29 +180,34 @@ if __name__ == "__main__":
     profiles = profiles.droplevel(1)
     profiles = profiles[~profiles.index.duplicated(keep='first')]
     profiles = profiles.dropna(subset=["longBusinessSummary"])
-    df_words, X = nlp.get_words_count(profiles, "longBusinessSummary")
-    # machine_learning.bayesian_cointegration_regresion(data1, data2)
-    clustered_series = clustering.dbscan(X, profiles.index, eps=1.05, min_samples=2)
-    pair_clusters = clustered_series.value_counts()[clustered_series.value_counts() < 3].index.values
-    print(pair_clusters)
-    print("\nTotal pair clusters discovered: %d" % len(pair_clusters))
-    cluster = clustered_series['TENB']
-    profiles = profiles.loc[clustered_series.index].reindex(clustered_series.index)
-    profiles["cluster"] = clustered_series
-    prices = stocks_summary.get_all_prices_one_column(list(stocks_summary.stock_objects.keys()), "adj_close")
-    initial_date = datetime.datetime.strptime(general_config["algorithm4"]["initial_date"], "%Y-%m-%d")
-    prices = prices.loc[initial_date:]
-    cluster = profiles.loc["RFP","cluster"]
-    clustering.plot_cluster(profiles, prices, cluster,)
-    clustering.plot_cluster(profiles, prices, cluster, plot_mean=True)
-    visualize_cluster(profiles, cluster)
 
-    for cluster in pair_clusters:
+    # machine_learning.bayesian_cointegration_regresion(data1, data2)
+    initial_date = datetime.datetime.strptime(general_config["algorithm4"]["initial_date"], "%Y-%m-%d")
+    prices = stocks_summary.get_all_prices_one_column(list(stocks_summary.stock_objects.keys()), "adj_close")
+    prices = prices.loc[initial_date:]
+
+
+    if MAKE_CLUSTERS:
+        df_words, X = nlp.get_words_count(profiles, "longBusinessSummary")
+        clustered_series = clustering.dbscan(X, profiles.index, eps=1.05, min_samples=2)
+        pair_clusters = clustered_series.value_counts()[clustered_series.value_counts() < 3].index.values
+        print(pair_clusters)
+        print("\nTotal pair clusters discovered: %d" % len(pair_clusters))
+        profiles = profiles.loc[clustered_series.index].reindex(clustered_series.index)
+        profiles["cluster"] = clustered_series
+        cluster = profiles.loc["UNCY","cluster"]
+        clustering.plot_cluster(profiles, prices, cluster,)
+        clustering.plot_cluster(profiles, prices, cluster, plot_mean=True)
+        visualize_cluster(profiles, cluster)
+        for cluster in pair_clusters:
+            clustered_index = profiles.loc[profiles["cluster"] == cluster].index
+            print(cluster,clustered_index)
         clustered_index = profiles.loc[profiles["cluster"] == cluster].index
-        print(cluster,clustered_index)
-    clustered_index = profiles.loc[profiles["cluster"] == cluster].index
+    else:
+        clustered_index=["GOOG","META"]
     prices_cluster = prices.loc[:, clustered_index]
-    prices_cluster = prices_cluster.diff().cumsum().bfill()
+    prices_cluster = prices_cluster.diff().cumsum().bfill().ffill()
+    print(prices_cluster.head(20),prices_cluster.tail(20))
     rolling_beta=machine_learning.bayesian_cointegration_regresion(prices_cluster.iloc[:, 0].values,
                                                       prices_cluster.iloc[:, 1].values, prices_cluster.index)
     portfolioWeights = getStrategyPortfolioWeights(rolling_beta,  prices_cluster.columns[0],  prices_cluster.columns[1], prices_cluster).fillna(0)

@@ -1,8 +1,8 @@
-GET_GLOBAL_SUMMARY: False
+GET_GLOBAL_SUMMARY: True
 PRICES_INTERVAL: "1d" #prices interval to the prices.
 PRICES_RANGE: "1000d" #number of bars to get since now. This is used if FROM or TO are None
 FROM: '2000-01-01' #initial datetime to get the prices and the technical indicators
-TO: '2022-12-04' #last datetime to get the prices and the technical indicators
+TO: '2022-12-25' #last datetime to get the prices and the technical indicators
 tickers: [ "GOOG","META","AAPL","MSFT","TSLA",
            "NVDA","AMD","INTC",
            "TENB","RPD","FTNT","PANW","S","ZS","OKTA","SPLK","VRNS",
@@ -34,7 +34,17 @@ algorithm1:
   black_literman_relative_views: [ { "ADBE": 0.1,"MU": -0.1 },{ "MSFT": 0.2,"META": -0.2 } ]
 algorithm2:
   weights_future: True
-  tickers: [ "MSFT","TSLA","AMD","FTNT","ADBE","CRM","APPS","PRFT","PLMR","NVDA","PANW","RPD","TMUS","DOCU"]
+  tickers: [ "GOOG","META","AAPL","MSFT","TSLA",
+           "NVDA","AMD","INTC",
+           "TENB","RPD","FTNT","PANW","S","ZS","OKTA","SPLK","VRNS",
+           "MU","T","VZ","CMCSA","DIS",
+           "SNOW","DOCN","NET","ADBE","DOCU","CRM",
+           "JPM","SAN","BAC","WFC","C","GS","MS",
+           "AMZN","VISA","MA","PYPL","APPS",
+           "OXY","XOM","CVX","DVN","TTE","EOG","MPC",
+           "BABA","PDD","NIO","MELI","JD","AMZN",
+            'BMY','CNP','CVX','FL','FRT','HON'
+]
   initial_date: "2018-01-01"
   train_duration: 120
   test_duration: 60
